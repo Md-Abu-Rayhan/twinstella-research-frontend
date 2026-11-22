@@ -55,7 +55,7 @@ function initMobileNav() {
   });
 }
 
-/* 3. Transparent Fee & Turnaround Estimator (Editage Model) */
+/* 3. Transparent Fee & Turnaround Estimator (International Launch Rates) */
 function initFeeCalculator() {
   const serviceEl = document.getElementById('calc-service');
   const sliderEl = document.getElementById('calc-words-range');
@@ -68,26 +68,26 @@ function initFeeCalculator() {
   if (!sliderEl || !wordDisplay || !priceDisplay) return;
 
   const rates = {
-    'editing': { base: 1400, unit: 1000, days: '5-7 Days' },
-    'thesis': { base: 1800, unit: 1000, days: '7-10 Days' },
-    'stats': { base: 3500, unit: 2000, days: '4-6 Days' },
-    'literature': { base: 1900, unit: 1000, days: '6-8 Days' },
-    'proposal': { base: 2200, unit: 1000, days: '4-5 Days' },
-    'methodology': { base: 2500, unit: 1500, days: '4-6 Days' },
-    'journal-format': { base: 1200, unit: 1000, days: '3-4 Days' },
-    'plagiarism': { base: 900, unit: 1000, days: '2-3 Days' },
-    'publication-package': { base: 4800, unit: 1000, days: '10-14 Days' }
+    'manuscript': { baseUSD: 399, perWord: 0, isPerWord: false, days: '5-7 Days', name: 'AI/ML Manuscript Readiness' },
+    'experiments': { baseUSD: 499, perWord: 0, isPerWord: false, days: '7-10 Days', name: 'ML Experiment Support' },
+    'foundation': { baseUSD: 199, perWord: 0, isPerWord: false, days: '4-6 Days', name: 'AI Research Foundation' },
+    'collaboration': { baseUSD: 1000, perWord: 0, isPerWord: false, days: '14-21 Days', name: 'AI Research Collaboration' },
+    'language-editing': { baseUSD: 0, perWord: 0.08, isPerWord: true, days: '3-5 Days', name: 'Technical Academic Editing ($0.08/word)' },
+    'model-impl': { baseUSD: 350, perWord: 0, isPerWord: false, days: '5-8 Days', name: 'ML / Deep Learning Implementation' },
+    'venue-format': { baseUSD: 75, perWord: 0, isPerWord: false, days: '2-3 Days', name: 'IEEE / Springer / Elsevier Formatting' },
+    'data-prep': { baseUSD: 150, perWord: 0, isPerWord: false, days: '3-5 Days', name: 'Dataset Exploration & Preprocessing' },
+    'reviewer-response': { baseUSD: 120, perWord: 0, isPerWord: false, days: '3-4 Days', name: 'Reviewer Response Consultation' }
   };
 
   const speedMultipliers = {
     'standard': { mult: 1.0, text: '5-7 Business Days' },
     'express': { mult: 1.35, text: '3-4 Business Days' },
-    'priority': { mult: 1.75, text: '24-48 Hours (Express)' }
+    'priority': { mult: 1.75, text: '24-48 Hours (Priority Track)' }
   };
 
   function update() {
-    const sKey = serviceEl ? serviceEl.value : 'editing';
-    const cfg = rates[sKey] || rates['editing'];
+    const sKey = serviceEl ? serviceEl.value : 'manuscript';
+    const cfg = rates[sKey] || rates['manuscript'];
     const words = parseInt(sliderEl.value, 10);
 
     wordDisplay.textContent = `${words.toLocaleString()} words`;
@@ -98,13 +98,20 @@ function initFeeCalculator() {
     });
 
     const spData = speedMultipliers[selectedSpeed] || speedMultipliers['standard'];
-    const units = Math.max(1, words / cfg.unit);
-    let total = Math.round(cfg.base * units * spData.mult);
+    let totalUSD = 0;
 
-    if (total < cfg.base) total = cfg.base;
+    if (cfg.isPerWord) {
+      totalUSD = Math.round(words * cfg.perWord * spData.mult);
+    } else {
+      // Scale moderately with word count beyond 4000 words
+      const scaleFactor = words > 4000 ? 1 + ((words - 4000) / 8000) * 0.4 : 1.0;
+      totalUSD = Math.round(cfg.baseUSD * scaleFactor * spData.mult);
+    }
 
-    const approxUSD = Math.round(total / 122);
-    priceDisplay.textContent = `৳ ${total.toLocaleString()}`;
+    const approxBDT = Math.round(totalUSD * 122);
+    priceDisplay.textContent = `$${totalUSD.toLocaleString()} USD`;
+    const subPrice = document.querySelector('.summary-price-sub');
+    if (subPrice) subPrice.textContent = `≈ ৳ ${approxBDT.toLocaleString()} BDT (starting price)`;
     if (timeDisplay) timeDisplay.textContent = spData.text;
   }
 
@@ -116,7 +123,7 @@ function initFeeCalculator() {
 
   if (submitCta) {
     submitCta.addEventListener('click', () => {
-      const sVal = serviceEl ? serviceEl.value : 'editing';
+      const sVal = serviceEl ? serviceEl.value : 'manuscript';
       const wVal = sliderEl.value;
       if (window.openSubmitModal) window.openSubmitModal(sVal, wVal);
     });
@@ -278,7 +285,7 @@ function initSubmissionModal() {
 
 /* 7. Animated Metrics Figures */
 function initMetricsAnimation() {
-  const figures = document.querySelectorAll('.metric-figure[data-target]');
+  const figures = document.querySelectorAll('[data-target]');
   if (!figures.length) return;
 
   let executed = false;
